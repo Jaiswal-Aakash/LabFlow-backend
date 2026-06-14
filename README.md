@@ -251,6 +251,19 @@ backend/
 
 ---
 
+## Team
+
+LabFlow was built by a team of **four**:
+
+| Person | Role |
+|--------|------|
+| **Aakash** | Backend development and parts of the frontend |
+| **Ninad** | Most of the frontend — UI, pages, and lab workflow |
+| **Divya** | Database design and parts of the backend |
+| **Vardhan** | Testing and QA |
+
+---
+
 ## License
 
 Part of the LabFlow project. See the frontend repo for UI setup and screenshots.
