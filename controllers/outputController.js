@@ -1,11 +1,13 @@
 const path = require("path");
-const fs = require("fs");
 const Output = require("../models/Output");
 const { getOwnedSession, getOwnedOutput } = require("../utils/ownership");
 const normalizeTags = require("../utils/normalizeTags");
-
-const buildImageUrl = (req, filename) =>
-  `${req.protocol}://${req.get("host")}/uploads/${filename}`;
+const {
+  storeUploadedFile,
+  deleteStoredImage,
+} = require("../services/imageStorage");
+const fetchImageBuffer = require("../utils/fetchImageBuffer");
+const { sanitizeFilename } = require("../services/docxBuilder");
 
 exports.listOutputsBySession = async (req, res) => {
   await getOwnedSession(req.params.sessionId, req.user._id);
@@ -38,8 +40,13 @@ exports.createOutputs = async (req, res) => {
     session: session._id,
   });
 
+  const storedFiles = await Promise.all(
+    req.files.map((file) => storeUploadedFile(file)),
+  );
+
   const outputs = await Promise.all(
-    req.files.map(async (file, index) => {
+    storedFiles.map(async (stored, index) => {
+      const file = req.files[index];
       const title =
         req.body.titles?.[index]?.trim() ||
         (baseTitle ? `${baseTitle} ${index + 1}` : file.originalname);
@@ -49,8 +56,8 @@ exports.createOutputs = async (req, res) => {
         subject: session.subject,
         session: session._id,
         title,
-        imageUrl: buildImageUrl(req, file.filename),
-        imageFilename: file.filename,
+        imageUrl: stored.imageUrl,
+        imageFilename: stored.imageFilename,
         note: sharedNote,
         code: sharedCode,
         codeLanguage: sharedCodeLanguage,
@@ -89,11 +96,34 @@ exports.updateOutput = async (req, res) => {
 exports.deleteOutput = async (req, res) => {
   const output = await getOwnedOutput(req.params.outputId, req.user._id);
 
-  const filePath = path.join(__dirname, "..", "uploads", output.imageFilename);
-  if (fs.existsSync(filePath)) {
-    fs.unlinkSync(filePath);
-  }
-
+  await deleteStoredImage(output);
   await output.deleteOne();
   res.json({ message: "Output deleted" });
+};
+
+exports.downloadOutputImage = async (req, res) => {
+  const output = await getOwnedOutput(req.params.outputId, req.user._id);
+
+  if (!output.imageUrl) {
+    return res.status(404).json({ message: "No image for this output" });
+  }
+
+  const buffer = await fetchImageBuffer(output.imageUrl, output.imageFilename);
+  const ext = path.extname(output.imageFilename || output.imageUrl) || ".jpg";
+  const baseName = sanitizeFilename(output.title || "lab-output");
+  const mime =
+    ext === ".png"
+      ? "image/png"
+      : ext === ".webp"
+        ? "image/webp"
+        : ext === ".gif"
+          ? "image/gif"
+          : "image/jpeg";
+
+  res.setHeader("Content-Type", mime);
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="${baseName}${ext}"`,
+  );
+  res.send(buffer);
 };

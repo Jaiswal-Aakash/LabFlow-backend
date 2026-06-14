@@ -1,4 +1,5 @@
 const required = ["MONGO_URI", "JWT_SECRET"];
+const { isCloudinaryEnabled } = require("./cloudinary");
 
 const validateMongoUri = (uri) => {
   // mongodb+srv://user:pass@host/db — auth must contain user:password
@@ -38,6 +39,14 @@ const validateEnv = () => {
     console.warn(
       "Warning: JWT_SECRET should be at least 32 characters for production.",
     );
+  }
+
+  if (process.env.NODE_ENV === "production" && !isCloudinaryEnabled()) {
+    console.warn(`
+Warning: Cloudinary is not configured (CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET).
+Uploaded images will be stored on local disk, which is lost on redeploy unless you use persistent volumes.
+Configure Cloudinary for production deployments.
+`);
   }
 };
 

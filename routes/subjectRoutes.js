@@ -20,6 +20,7 @@ router.get("/:subjectId", asyncHandler(getSubject));
 router.patch("/:subjectId", asyncHandler(updateSubject));
 router.delete("/:subjectId", asyncHandler(deleteSubject));
 
+router.use("/:subjectId/reports", require("./subjectReportRoutes"));
 router.use("/:subjectId/sessions", sessionRoutes);
 
 module.exports = router;

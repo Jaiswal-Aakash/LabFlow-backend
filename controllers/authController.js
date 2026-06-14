@@ -4,6 +4,18 @@ const generateToken = require("../utils/generateToken");
 
 const BCRYPT_ROUNDS = Number(process.env.BCRYPT_ROUNDS) || 10;
 
+const formatUser = (user) => ({
+  _id: user._id,
+  name: user.name,
+  email: user.email,
+  role: user.role,
+  createdAt: user.createdAt,
+  preferences: {
+    tourDisabled: user.preferences?.tourDisabled ?? false,
+    tourCompletedAt: user.preferences?.tourCompletedAt ?? null,
+  },
+});
+
 exports.register = async (req, res) => {
   try {
     let { name, email, password, role } = req.body;
@@ -30,10 +42,7 @@ exports.register = async (req, res) => {
     });
 
     res.status(201).json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
+      ...formatUser(user),
       token: generateToken(user),
     });
   } catch (error) {
@@ -68,10 +77,36 @@ exports.login = async (req, res) => {
   }
 
   res.status(200).json({
-    _id: user._id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
+    ...formatUser(user),
     token: generateToken(user),
   });
+};
+
+exports.updateProfile = async (req, res) => {
+  const user = await User.findById(req.user._id);
+
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
+  }
+
+  const { preferences } = req.body;
+
+  if (preferences) {
+    if (!user.preferences) {
+      user.preferences = {};
+    }
+
+    if (preferences.tourDisabled !== undefined) {
+      user.preferences.tourDisabled = Boolean(preferences.tourDisabled);
+    }
+
+    if (preferences.tourCompletedAt !== undefined) {
+      user.preferences.tourCompletedAt = preferences.tourCompletedAt
+        ? new Date(preferences.tourCompletedAt)
+        : null;
+    }
+  }
+
+  await user.save();
+  res.json(formatUser(user));
 };

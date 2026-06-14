@@ -28,6 +28,16 @@ const userSchema = new mongoose.Schema(
       enum: ["user", "student", "admin", "researcher"],
       default: "student",
     },
+    preferences: {
+      tourDisabled: {
+        type: Boolean,
+        default: false,
+      },
+      tourCompletedAt: {
+        type: Date,
+        default: null,
+      },
+    },
   },
   {
     timestamps: true,

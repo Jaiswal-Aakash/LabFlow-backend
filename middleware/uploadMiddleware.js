@@ -1,6 +1,7 @@
 const path = require("path");
 const fs = require("fs");
 const multer = require("multer");
+const { isCloudinaryEnabled } = require("../config/cloudinary");
 
 const UPLOAD_DIR = path.join(__dirname, "..", "uploads");
 
@@ -8,7 +9,7 @@ if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
 
-const storage = multer.diskStorage({
+const diskStorage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
   filename: (_req, file, cb) => {
     const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
@@ -16,6 +17,10 @@ const storage = multer.diskStorage({
     cb(null, `${unique}${ext}`);
   },
 });
+
+const storage = isCloudinaryEnabled()
+  ? multer.memoryStorage()
+  : diskStorage;
 
 const fileFilter = (_req, file, cb) => {
   const allowed = /jpeg|jpg|png|gif|webp|heic/;

@@ -1,10 +1,11 @@
-const dotenv = require("dotenv");
+require("dotenv").config();
+
 const mongoose = require("mongoose");
 const createApp = require("./app");
 const connectDB = require("./config/db");
 const { validateEnv } = require("./config/env");
+const { isCloudinaryEnabled } = require("./config/cloudinary");
 
-dotenv.config();
 validateEnv();
 
 const startServer = async () => {
@@ -14,8 +15,9 @@ const startServer = async () => {
   const PORT = process.env.PORT || 5000;
 
   const server = app.listen(PORT, () => {
+    const storage = isCloudinaryEnabled() ? "Cloudinary" : "local disk";
     console.log(
-      `Worker ${process.pid} listening on port ${PORT} [${process.env.NODE_ENV || "development"}]`,
+      `Worker ${process.pid} listening on port ${PORT} [${process.env.NODE_ENV || "development"}] — images: ${storage}`,
     );
   });
 

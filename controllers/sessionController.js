@@ -1,13 +1,14 @@
 const LabSession = require("../models/LabSession");
 const Output = require("../models/Output");
 const { getOwnedSubject, getOwnedSession } = require("../utils/ownership");
+const { deleteStoredImages } = require("../services/imageStorage");
 
 exports.listSessionsBySubject = async (req, res) => {
-  await getOwnedSubject(req.params.subjectId, req.user._id);
+  const subject = await getOwnedSubject(req.params.subjectId, req.user._id);
 
   const sessions = await LabSession.find({
     user: req.user._id,
-    subject: req.params.subjectId,
+    subject: subject._id,
   })
     .sort({ sessionDate: -1, createdAt: -1 })
     .lean();
@@ -16,7 +17,7 @@ exports.listSessionsBySubject = async (req, res) => {
     {
       $match: {
         user: req.user._id,
-        subject: req.params.subjectId,
+        subject: subject._id,
       },
     },
     { $group: { _id: "$session", count: { $sum: 1 } } },
@@ -93,6 +94,12 @@ exports.deleteSession = async (req, res) => {
     return res.status(404).json({ message: "Session not found" });
   }
 
+  const outputs = await Output.find({
+    user: req.user._id,
+    session: session._id,
+  }).lean();
+
+  await deleteStoredImages(outputs);
   await Output.deleteMany({ user: req.user._id, session: session._id });
 
   res.json({ message: "Session deleted" });

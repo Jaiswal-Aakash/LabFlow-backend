@@ -18,5 +18,6 @@ router.patch("/:sessionId", asyncHandler(updateSession));
 router.delete("/:sessionId", asyncHandler(deleteSession));
 
 router.use("/:sessionId/outputs", outputRoutes);
+router.use("/:sessionId/reports", require("./reportRoutes"));
 
 module.exports = router;

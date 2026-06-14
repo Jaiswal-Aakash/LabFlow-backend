@@ -2,6 +2,7 @@ const Subject = require("../models/Subject");
 const LabSession = require("../models/LabSession");
 const Output = require("../models/Output");
 const { getOwnedSubject } = require("../utils/ownership");
+const { deleteStoredImages } = require("../services/imageStorage");
 
 exports.listSubjects = async (req, res) => {
   const subjects = await Subject.find({ user: req.user._id })
@@ -94,6 +95,12 @@ exports.deleteSubject = async (req, res) => {
 
   const sessionIds = sessions.map((s) => s._id);
 
+  const outputs = await Output.find({
+    user: req.user._id,
+    subject: subject._id,
+  }).lean();
+
+  await deleteStoredImages(outputs);
   await Output.deleteMany({ user: req.user._id, subject: subject._id });
   await LabSession.deleteMany({ user: req.user._id, subject: subject._id });
 

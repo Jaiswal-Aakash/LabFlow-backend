@@ -12,7 +12,11 @@ const createApp = () => {
 
   app.set("trust proxy", 1);
 
-  app.use(helmet());
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: "cross-origin" },
+    }),
+  );
   app.use(compression());
 
   const allowedOrigins = (process.env.CORS_ORIGINS || "http://localhost:5173")
@@ -62,6 +66,8 @@ const createApp = () => {
   app.use("/api/auth", require("./routes/authRoutes"));
   app.use("/api/stats", require("./routes/statsRoutes"));
   app.use("/api/subjects", require("./routes/subjectRoutes"));
+  app.use("/api/reports", require("./routes/labReportRoutes"));
+  app.use("/api/shared/reports", require("./routes/sharedReportRoutes"));
   app.use("/api/outputs", require("./routes/labOutputRoutes"));
   app.use("/api/search", require("./routes/searchRoutes"));
 
