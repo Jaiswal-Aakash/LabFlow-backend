@@ -1,4 +1,8 @@
 const errorHandler = (err, req, res, next) => {
+  if (err?.message?.includes("CORS")) {
+    return res.status(403).json({ message: "Not allowed by CORS" });
+  }
+
   const statusCode = err.statusCode || 500;
   const message =
     statusCode === 500 && process.env.NODE_ENV === "production"

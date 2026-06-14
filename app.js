@@ -19,36 +19,35 @@ const createApp = () => {
   );
   app.use(compression());
 
-  const allowedOrigins = (process.env.CORS_ORIGINS || "http://localhost:5173")
-    .split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean);
+  const allowedOrigins = [
+    "http://localhost:5173",
+    ...(process.env.CORS_ORIGINS || "")
+      .split(",")
+      .map((origin) => origin.trim())
+      .filter(Boolean),
+  ];
 
-  if (process.env.NODE_ENV === "production") {
-    console.log("CORS allowed origins:", allowedOrigins.join(", ") || "(none)");
-  }
+  // De-dupe while preserving order
+  const uniqueOrigins = [...new Set(allowedOrigins)];
 
-  app.use(
-    cors({
-      origin(origin, callback) {
-        // Same-origin tools (curl, Postman) or server-to-server — no Origin header
-        if (!origin) {
-          return callback(null, true);
-        }
+  console.log("CORS allowed origins:", uniqueOrigins.join(", "));
 
-        if (allowedOrigins.includes(origin)) {
-          return callback(null, true);
-        }
+  const corsOptions = {
+    origin(origin, callback) {
+      if (!origin || uniqueOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      console.warn(`CORS blocked origin: ${origin}`);
+      return callback(null, false);
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    optionsSuccessStatus: 204,
+  };
 
-        console.warn(`CORS blocked request from origin: ${origin}`);
-        return callback(null, false);
-      },
-      credentials: true,
-      methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-      allowedHeaders: ["Content-Type", "Authorization"],
-      optionsSuccessStatus: 204,
-    }),
-  );
+  app.use(cors(corsOptions));
+  app.options(/.*/, cors(corsOptions));
 
   app.use(express.json({ limit: "10kb" }));
   app.use(globalLimiter);
